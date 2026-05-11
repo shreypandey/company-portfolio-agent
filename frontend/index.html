@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Research Agent</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Portfolio Research Agent</h1>
+    <span class="sub">Multi-source company research • live tool stream</span>
+  </header>
+
+  <main>
+    <form id="research-form" autocomplete="off">
+      <div class="search-wrapper">
+        <input
+          id="company-input"
+          type="text"
+          placeholder="Type a company name or ticker — e.g. Apple, NVDA, Salesforce"
+          required
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <ul id="suggestions" class="suggestions" hidden role="listbox"></ul>
+      </div>
+      <button type="submit" id="submit-btn">Research</button>
+    </form>
+
+    <div id="status" class="status status-idle">Ready.</div>
+
+    <section id="stream-wrap">
+      <h2 id="stream-toggle">
+        <span class="caret">▾</span>
+        <span>Live agent stream</span>
+        <span class="muted stream-hint"></span>
+      </h2>
+      <div id="stream-body">
+        <div id="stream"></div>
+        <pre id="agent-text" class="agent-text-live"></pre>
+      </div>
+    </section>
+
+    <section id="final-wrap" hidden>
+      <h2 id="final-toggle">
+        <span class="caret">▾</span>
+        <span>Final portfolio</span>
+        <span class="muted final-hint"></span>
+      </h2>
+      <div id="final-body">
+        <div id="final"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="scroll-pill" hidden>↓ new updates · click to follow</div>
+
+  <footer>
+    <span class="muted">Anthropic Claude • Finnhub • Brave Search • SEC EDGAR • Yahoo Finance • Wikipedia</span>
+  </footer>
+</body>
+</html>

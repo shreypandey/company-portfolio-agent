@@ -1,0 +1,26 @@
+[project]
+name = "portfolio-agent"
+version = "0.1.0"
+description = "Live-streaming company research agent with portfolio and Excel output generation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "openai>=1.50.0",
+    "google-genai>=2.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.9.0",
+    "yfinance>=0.2.50",
+    "openpyxl>=3.1.5",
+    "trafilatura>=1.12.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.3.0",
+    "tenacity>=9.0.0",
+    "sse-starlette>=2.1.3",
+]
+
+[tool.uv]
+package = false
