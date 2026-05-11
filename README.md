@@ -12,7 +12,7 @@ For each run, in `outputs/<run_id>/`:
   analyst view, market position, competitors, ownership & insider activity,
   recent events, sector & macro context, risks (every non-trivial claim cited
   inline with the source name and URL)
-- `<Company>_financials.xlsx` — up to 14 sheets: Overview, Income Statement
+- `<Company>_financials.xlsx` — up to 15 sheets: Overview, Income Statement
   (annual + quarterly), Balance Sheet (annual + quarterly), Cash Flow (annual +
   quarterly), Key Ratios History, Earnings Track, Analyst Coverage,
   Ownership & Insider, Peers Comparison, Macro Context, Source Log, Data Gaps
@@ -34,7 +34,7 @@ Browser ─GET /research?company=X─► FastAPI ──► Agent loop ──► 
         (started, iteration, agent_text,        runs/{id}/state.json
          tool_start, tool_input_delta,          runs/{id}/archive.json
          tool_executing, tool_result,           outputs/{id}/portfolio.md
-         source_try/ok/miss/error,              outputs/{id}/<co>_financials.xlsx
+         source_try/ok/miss/error/cache_hit,    outputs/{id}/<co>_financials.xlsx
          turn_done, retry, context_trim,
          error, done)
 ```
@@ -87,10 +87,12 @@ The assignment called this out specifically. Layer by layer:
   the chain fails does the tool return `ok: false` — and even then with a hint
   telling the LLM what to try.
 - **Per-source retry**: shared `request()` helper with 2-attempt exponential
-  backoff on 408/425/429/500/502/503/504/529. 404 → clean `SourceMiss` (not
-  retried). Auth errors not retried.
-- **LLM API retry**: `tenacity` 4-attempt retry on transient errors with
-  exponential backoff + jitter. `retry` SSE event so the UI shows it.
+  backoff on 408/425/5xx (including 522/524/529); 429 → `RateLimitError`, also
+  retried. 404 → clean `SourceMiss` (not retried). Auth errors not retried.
+- **LLM API retry**: Anthropic client uses `tenacity` 4-attempt retry on
+  transient errors with exponential backoff + jitter, emitting a `retry` SSE
+  event so the UI shows it. Gemini client relies on the `google-genai` SDK's
+  built-in behavior.
 - **Tool-call dedupe (Gemini)**: Gemini's streaming repeats some function calls
   across chunks. Deduped by `(name, args)` signature in `gemini_client`.
 - **Finnhub rate limit**: in-process token bucket (60/min) prevents self-429s on
@@ -148,8 +150,7 @@ Single page, vanilla JS, SSE consumer:
 ## Setup
 
 ```bash
-uv venv
-uv pip install -r requirements.txt
+uv sync                # creates .venv and installs from uv.lock
 cp .env.example .env   # then fill in keys
 ```
 
@@ -157,8 +158,7 @@ cp .env.example .env   # then fill in keys
 
 | Key | Used by |
 |---|---|
-| `ANTHROPIC_API_KEY` | Anthropic provider (only if `LLM_PROVIDER=anthropic`) |
-| `LLM_API_KEY` | Gemini provider (Google AI Studio key) |
+| `LLM_API_KEY` | LLM provider key (Anthropic or Google AI Studio, depending on `LLM_PROVIDER`) |
 | `LLM_PROVIDER` | `anthropic` or `gemini` |
 | `LLM_MODEL` | e.g. `gemini-3.1-pro-preview` or `claude-sonnet-4-6` |
 | `FINNHUB_API_KEY` | primary US data source — required |
@@ -197,22 +197,6 @@ LLM_MODEL="claude-sonnet-4-6"     # or "gemini-3.1-pro-preview", "gemini-3.1-fla
 
 The agent loop is provider-agnostic. Switching is `.env` + restart, no code change.
 
-## Limitations (honest)
-
-- `yfinance` is unofficial — could break overnight if Yahoo changes their
-  internals. Finnhub fallback covers US tickers; foreign tickers would degrade.
-- Free tiers are real bottlenecks: Tavily 1000 searches/mo, AV 25 calls/day,
-  Finnhub 60/min. The in-process cache and rate limiter mitigate but don't
-  eliminate.
-- Analyst price targets + 13F institutional holdings are **paid-only** on
-  Finnhub. The portfolio surfaces this gap explicitly rather than hallucinating.
-- SEC EDGAR is US-only. Foreign cross-listed companies (ADRs like TM) work for
-  filings list, but the actual 20-F document text isn't surfaced — only 10-K.
-- Prompt-injection in fetched pages is **unmitigated**. The agent treats
-  `fetch_page` content as data.
-- No authentication, no multi-user, no run queue. Single-user demo.
-- No unit tests. Resilience verified through end-to-end runs.
-
 ## Project layout
 
 ```
@@ -245,4 +229,3 @@ frontend/
 outputs/<run_id>/       # portfolio.md + .xlsx (and the source markdown the agent wrote)
 runs/<run_id>/          # state.json checkpoint + archive.json (when context-trim fires)
 ```
-# company-portfolio-agent

@@ -66,7 +66,7 @@ def _canonical_to_anthropic_messages(messages: list[dict]) -> list[dict]:
 class AnthropicClient(BaseLLMClient):
     def __init__(self, api_key: str, model: str):
         if not api_key:
-            raise RuntimeError("Anthropic client requires ANTHROPIC_API_KEY")
+            raise RuntimeError("Anthropic client requires LLM_API_KEY")
         self._client = AsyncAnthropic(api_key=api_key, timeout=120.0)
         self._model = model
 
